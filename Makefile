@@ -8,8 +8,6 @@ SBT = sbt
 gcmem:
 	$(SBT) "test:runMain simple.GcmemTester"
 
-#	$(SBT) "run-main simple.GcmemTester"
-
 
 view:
 	gtkwave generated/GcmemSimple.vcd # --save=abc.gtkw
