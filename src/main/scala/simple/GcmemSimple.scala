@@ -18,36 +18,53 @@ class GcmemSimple() extends Module {
   val io = new Bundle {
     val read = Bool(INPUT)
     val rd = Bool(OUTPUT)
+    val write = Bool(INPUT)
+    val wr = Bool(OUTPUT)
     val moor_rd = Bool(OUTPUT)
     val out = UInt(OUTPUT, 1)
   }
 
-  val idle :: read :: Nil = Enum(UInt(), 2)
+  val idle :: read :: write :: Nil = Enum(UInt(), 3)
   val stateReg = Reg(init = idle)
+  
+  val TRUE = Bool(true)
+  val FALSE = Bool(false)
 
   // Have a default assignment for combinational signals
-  io.rd := Bool(false) 
+  io.rd := Bool(false)
+  io.wr := Bool(false)
   io.moor_rd := Bool(false)
-  
+
   // A little bit verbosely written
   // Mealy FSM
-  
-  when(stateReg === idle) {
-    io.rd := Bool(false)
-    when(io.read) {
-      stateReg := read
+  switch(stateReg) {
+    is(idle) {
+      io.rd := FALSE
+      when(io.read) {
+        stateReg := read
+        io.rd := Bool(true)
+      }.elsewhen(io.write) {
+        stateReg := write
+        io.wr := Bool(true)
+      }
+    }
+    is(read) {
       io.rd := Bool(true)
+      when(!io.read) {
+        stateReg := idle
+        io.rd := Bool(false)
+      }
+
     }
-  }.elsewhen(stateReg === read) {
-    io.rd := Bool(true)
-    when(!io.read) {
-      stateReg := idle
-      io.rd := Bool(false)
+    is(write) {
+      io.wr := Bool(true)
+      when(!io.write) {
+        stateReg := idle
+        io.wr := Bool(false)
+      }
     }
-  }.otherwise {
-    // There should not be an otherwise state
   }
-  
+
   // With a Moore FSM the output is one cycle delayed
   when(stateReg === idle) {
     io.moor_rd := Bool(false)
@@ -55,7 +72,6 @@ class GcmemSimple() extends Module {
     io.moor_rd := Bool(true)
   }
 }
-
 
 object GcmemMain {
   def main(args: Array[String]): Unit = {
